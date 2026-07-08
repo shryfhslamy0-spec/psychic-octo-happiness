@@ -1,4 +1,3 @@
-
 const {
 Client,
 GatewayIntentBits,
@@ -7,90 +6,96 @@ ButtonBuilder,
 ButtonStyle,
 ActionRowBuilder,
 ChannelType,
-PermissionsBitField
+PermissionsBitField,
+REST,
+Routes,
+SlashCommandBuilder
 } = require("discord.js");
 
-const config = require("./config.json");
-
 const client = new Client({
- intents:[
-  GatewayIntentBits.Guilds,
-  GatewayIntentBits.GuildMessages
+ intents: [
+  GatewayIntentBits.Guilds
  ]
 });
 
+const TOKEN = process.env.BOT_TOKEN;
+const CATEGORY_ID = process.env.CATEGORY_ID;
 
-client.once("ready",()=>{
- console.log(`Logged as ${client.user.tag}`);
-});
+client.once("ready", async () => {
 
+console.log(`✅ Online as ${client.user.tag}`);
 
-client.on("messageCreate", async message=>{
-
- if(message.content === "!shop"){
-
- const embed = new EmbedBuilder()
- .setTitle("🟣 Nitro Shop")
- .setDescription(`
-**المنتجات:**
-
-💎 Nitro Basic
-💎 Nitro Boost
-💎 Nitro Gift
-
-اضغط الزر للشراء
- `)
- .setImage("ضع رابط صورة المتجر هنا");
+const commands = [
+ new SlashCommandBuilder()
+ .setName("shop")
+ .setDescription("فتح المتجر")
+].map(command => command.toJSON());
 
 
- const button = new ButtonBuilder()
- .setCustomId("buy")
- .setLabel("🛒 شراء")
- .setStyle(ButtonStyle.Success);
+const rest = new REST({version:"10"}).setToken(TOKEN);
 
+await rest.put(
+ Routes.applicationCommands(client.user.id),
+ {body: commands}
+);
 
- const row = new ActionRowBuilder()
- .addComponents(button);
-
-
- message.channel.send({
-  embeds:[embed],
-  components:[row]
- });
-
- }
+console.log("✅ Commands registered");
 
 });
 
 
+client.on("interactionCreate", async interaction => {
 
-client.on("interactionCreate", async interaction=>{
+if(interaction.isChatInputCommand()){
+
+if(interaction.commandName === "shop"){
+
+const embed = new EmbedBuilder()
+.setTitle("🟣 Nitro Shop")
+.setDescription(
+"اختر المنتج واضغط شراء 🛒"
+)
+.setImage("ضع صورة المتجر هنا");
 
 
-if(!interaction.isButton()) return;
+const button = new ButtonBuilder()
+.setCustomId("buy")
+.setLabel("🛒 شراء")
+.setStyle(ButtonStyle.Success);
 
+
+await interaction.reply({
+embeds:[embed],
+components:[
+new ActionRowBuilder()
+.addComponents(button)
+]
+});
+
+}
+
+}
+
+
+if(interaction.isButton()){
 
 if(interaction.customId === "buy"){
 
-
-let channel = await interaction.guild.channels.create({
+const channel = await interaction.guild.channels.create({
 
 name:`ticket-${interaction.user.username}`,
 
 type:ChannelType.GuildText,
 
-parent:config.categoryID,
-
+parent:CATEGORY_ID,
 
 permissionOverwrites:[
-
 {
 id:interaction.guild.id,
 deny:[
 PermissionsBitField.Flags.ViewChannel
 ]
 },
-
 {
 id:interaction.user.id,
 allow:[
@@ -98,59 +103,26 @@ PermissionsBitField.Flags.ViewChannel,
 PermissionsBitField.Flags.SendMessages
 ]
 }
-
 ]
 
 });
 
 
-channel.send({
-content:`<@${interaction.user.id}>`,
-embeds:[
-new EmbedBuilder()
-.setTitle("🎟️ طلب جديد")
-.setDescription(`
-اختر المنتج الذي تريده.
-
-💎 Nitro
-💳 طريقة الدفع
-`)
-],
-
-components:[
-new ActionRowBuilder()
-.addComponents(
-
-new ButtonBuilder()
-.setLabel("إغلاق التذكرة")
-.setCustomId("close")
-.setStyle(ButtonStyle.Danger)
-
-)
-
-]
-
-});
+await channel.send(
+`🎟️ تكت جديد لـ <@${interaction.user.id}>`
+);
 
 
 interaction.reply({
-content:"تم فتح التذكرة ✅",
+content:"تم فتح التكت ✅",
 ephemeral:true
 });
 
-
 }
 
-
-
-if(interaction.customId === "close"){
-
-interaction.channel.delete();
-
 }
-
 
 });
 
 
-client.login(config.token);
+client.login(TOKEN);
