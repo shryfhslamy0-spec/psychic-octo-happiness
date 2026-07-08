@@ -1,0 +1,5 @@
+{
+  "token": "PUT_BOT_TOKEN_HERE",
+  "categoryID": "TICKETS_CATEGORY_ID",
+  "staffRole": "STAFF_ROLE_ID"
+}
